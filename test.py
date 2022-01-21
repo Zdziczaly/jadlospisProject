@@ -6,19 +6,24 @@ def splitlist_may(meal_list):
     Returns list of meals.
 
     :param meal_list: string containing all of the PDF.
-    :return: list of dictionaries (meal nr, date, meal name, macronutrients, ingredients, instruction)
+    :return: list of dictionaries (meal nr, date, meal name, ingredients, instruction)
     """
     dishes_list = re.split(r'\d\d:\d\d.', meal_list)
-    dishes_list = dishes_list[1:] # remove first input in the list, which is not a meal
+    dishes_list = dishes_list[1:]  # remove first input in the list, which is not a meal
     splitted_list = []
     for dish in dishes_list:
         meal_nr = dish.partition('\n')[0]
         date = re.findall(r'(\d\d\.\d\d\.\d\d\d\d)', dish)[0]
-        meal_name = re.findall(r'\d\d\.\d\d\.\d\d\d\d\n([A-Za-z\s]+\n*)+', dish)
-        # macronutrients =
-        splitted_list.append({'meal_nr': meal_nr, 'date': date, 'meal_name': meal_name})
+        meal_name = re.findall(r'\d\d\.\d\d\.\d\d\d\d\n([\S\s]+)\nWARTO', dish)
+        meal_name = meal_name[0].replace('\n', ' ')
+        ingredients_temp = re.findall(r'^(.+) - .+\(([0-9]+) g\)$', dish, re.MULTILINE)
+        ingredients = []
+        for position in ingredients_temp:
+            ingredients.append([position[0], float(position[1])])
+        instruction = re.findall(r'SPOSÓB PRZYGOTOWANIA:\n([\s\S]+)$', dish)
+        splitted_list.append({'meal_nr': meal_nr, 'date': date, 'meal_name': meal_name,
+                              'ingredients': ingredients, 'instruction': instruction})
     return splitted_list
-
 
 
 jadlospis = """Indywidualny plan żywieniowy
@@ -200,28 +205,36 @@ oliwą i piecz w temperaturze 180 stopni przez około
 4. Z ogórka, szczypiorku, jogurtu i przypraw przygotuj
 mizerię.
 5. Podawaj mięso z ziemniakami i mizerią."""
-lista = re.split(r'\d\d:\d\d.', jadlospis)
+#lista = re.split(r'\d\d:\d\d.', jadlospis)
 
-funkcja = splitlist_may(jadlospis)
-print(funkcja[0])
+dish_list = splitlist_may(jadlospis)
+ingredients_list = []
+for dish in dish_list:
+    for item in dish['ingredients']:
+        ingredients_list.append(item[0])
+print(len(ingredients_list))
+print(ingredients_list)
+print(list(set(ingredients_list)))
+print(len(list(set(ingredients_list))))
 
-print(lista[1])
-x = re.split(r'SKŁADNIKI:|WARTOŚCI\nODŻYWCZE:', lista[2])
-print(x)
-print(len(x))
-x = x[1:]
-energy = float(str(re.findall(r'Energia:.(\d+).*', x[0])[0]))
+
+#print(lista[1])
+#x = re.split(r'SKŁADNIKI:|WARTOŚCI\nODŻYWCZE:', lista[2])
+#print(x)
+#print(len(x))
+#x = x[1:]
+#energy = float(str(re.findall(r'Energia:.(\d+).*', x[0])[0]))
 
 # Lista skladnikow z masami skonwertowanymi na float do latwiejszej obrobki
 # zwroc liste tupli ('skladnik', 'masa')
-skladniki_temp = re.findall(r'(.+) -.+\((\d+) g\)', x[1])
+#skladniki_temp = re.findall(r'(.+) -.+\((\d+) g\)', x[1])
 # konwertuj masy na float (wymaga nowej zmiennej, bo tuple sa niezmienne)
-skladniki = []
-for i in skladniki_temp:
-    skladniki.append((i[0], float(i[1])))
+#skladniki = []
+#for i in skladniki_temp:
+#    skladniki.append((i[0], float(i[1])))
 
 # DEBUG
-print(skladniki)
-print(energy*2)
-print(x[0])
-print(len(x))
+#print(skladniki)
+#print(energy*2)
+#print(x[0])
+#print(len(x))
