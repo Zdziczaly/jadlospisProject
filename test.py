@@ -87,8 +87,10 @@ class CookBook:
     def add_new_recipe(self, dish: Dish):
         for recipe in self.recipes:
             if dish.name == recipe.name and dish.meal == recipe.meal:
+                print("LOG: Przepis {name} juz wystepuje na liscie przepisow".format(name=dish.name))
                 return
         self.recipes.append(dish)
+        print("LOG: Dodano przepis - {name}".format(name=dish.name))
 
     def __str__(self):
         x = ""
@@ -103,6 +105,8 @@ class MealPlan:
             menu_content = file.read()
         self.menu_table_str = re.split(r'[\t\n]', menu_content)
         self.menu_table_obj = []
+        print("LOG: Jadlospis zaimportowany w formie tekstowej - dodano {count} przepisow.".format(
+            count=len(self.menu_table_str)))
 
     def __str__(self):
         return str(self.menu_table_str)
@@ -113,13 +117,34 @@ class MealPlan:
                 if recipe.name == entry:
                     self.menu_table_obj.append(recipe)
                     break
+        print("LOG: Jadlospis stworzony w formie obiektowej - dodano {count} przepisow".format(
+            count=len(self.menu_table_obj)))
+        if len(self.menu_table_str) - len(self.menu_table_obj) > 0:
+            print(
+                "LOG: {count} przepisow nie moglo zostac zaimportowanych - sprawdz poprawnosc nazw w pliku jadlospisu".format(
+                    count=len(self.menu_table_str) - len(self.menu_table_obj)))
 
-    def create_shopping_list(self):
+    def return_shopping_list(self):
+        shopping_list_temp = []
         shopping_list = []
         # create list by adding together content of all ingredients lists of all Dish objects
         for entry in self.menu_table_obj:
-            shopping_list.extend(entry.ingredients_list)
+            shopping_list_temp.extend(entry.ingredients_list)
         # TODO: make it so that the list contains only unique entries, and identical ingredients are summed
+        for entry in shopping_list_temp:
+            entry_added_flag = False
+            if len(shopping_list) == 0:
+                shopping_list.append(entry)
+            else:
+                # check if shopping list contains the ingredient, and if it does - add the weight and go to the next entry
+                for position in shopping_list:
+                    if entry[0]==position[0]:
+                        position[1]+=entry[1]  # TODO: TO GOWNO NIE DZIALA POPRAWNIE przez PASS-BY-REFERENCE! Możesz sprawdzić zwracajac shopping_list_temp
+                        entry_added_flag = True
+                        break
+                # if the shopping list does not contain the ingredient, add it to the list
+                if not entry_added_flag:
+                    shopping_list.append(entry)
         return shopping_list
 
 
@@ -163,7 +188,7 @@ print(meal_plan)
 print(len(meal_plan.menu_table_str))
 meal_plan.create_menu_with_objects(book_of_recipes)
 print(len(meal_plan.menu_table_obj))
-print(meal_plan.create_shopping_list())  # test listy zakupów
+print(meal_plan.return_shopping_list())  # test listy zakupów
 
 # lista wszystkich sniadan
 # for entry in dish_list:
