@@ -19,7 +19,6 @@ class Dish:
         shake = "Shake"
         dinner = "Dinner"
         supper = "Supper"
-        multiplier = 0
         if re.fullmatch(r'\d\d.0[56].\d{4}', date):
             if re.fullmatch(r'Posiłek I', meal):
                 self.meal = breakfast
@@ -60,7 +59,7 @@ class Dish:
         self.date = date
         self.ingredients_list = []
         for ingredient in ingredients:
-            self.ingredients_list.append([ingredient[0], float(ingredient[1]) * multiplier])
+            self.ingredients_list.append([ingredient[0], round(float(ingredient[1]) * multiplier)])
         self.preparation_instruction = instruction
 
     def __str__(self):
@@ -98,6 +97,32 @@ class CookBook:
         return x
 
 
+class MealPlan:
+    def __init__(self, path_to_menu):
+        with open(path_to_menu) as file:
+            menu_content = file.read()
+        self.menu_table_str = re.split(r'[\t\n]', menu_content)
+        self.menu_table_obj = []
+
+    def __str__(self):
+        return str(self.menu_table_str)
+
+    def create_menu_with_objects(self, cookbook: CookBook):
+        for entry in self.menu_table_str:
+            for recipe in cookbook.recipes:
+                if recipe.name == entry:
+                    self.menu_table_obj.append(recipe)
+                    break
+
+    def create_shopping_list(self):
+        shopping_list = []
+        # create list by adding together content of all ingredients lists of all Dish objects
+        for entry in self.menu_table_obj:
+            shopping_list.extend(entry.ingredients_list)
+        # TODO: make it so that the list contains only unique entries, and identical ingredients are summed
+        return shopping_list
+
+
 def splitlist_may(meal_list):
     """
     Returns list of meals.
@@ -132,9 +157,17 @@ for entry in dish_list:
     all_ingredients.extend(entry.ingredient_types())  # TODO: this should use CookBook
 print(set(all_ingredients))
 
+# test wczytywania jadlospisu
+meal_plan = MealPlan("test_meal_plan.txt")
+print(meal_plan)
+print(len(meal_plan.menu_table_str))
+meal_plan.create_menu_with_objects(book_of_recipes)
+print(len(meal_plan.menu_table_obj))
+print(meal_plan.create_shopping_list())  # test listy zakupów
+
 # lista wszystkich sniadan
-for entry in dish_list:
-    print(entry.name)
-print(len(dish_list))
-print(book_of_recipes)
-print(len(book_of_recipes.recipes))
+# for entry in dish_list:
+#     print(entry.name)
+# print(len(dish_list))
+# print(book_of_recipes)
+# print(len(book_of_recipes.recipes))
