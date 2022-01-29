@@ -1,5 +1,8 @@
 import re
+import logging
 
+
+logging.getLogger().setLevel(logging.INFO)
 
 class Dish:
     def __init__(self, meal, dish_name, date, ingredients, instruction):
@@ -34,7 +37,7 @@ class Dish:
                 multiplier = 1.5
             else:
                 raise Exception("Meal not recognized")
-        elif re.fullmatch(r'\d\d.09.\d{4}', date) or re.fullmatch(r'\d\d.09.\d{4}', date):
+        elif re.fullmatch(r'\d\d.09.\d{4}', date) or re.fullmatch(r'\d\d.10.\d{4}', date):
             if re.fullmatch(r'Posiłek I', meal):
                 self.meal = breakfast
                 multiplier = 3
@@ -87,10 +90,10 @@ class CookBook:
     def add_new_recipe(self, dish: Dish):
         for recipe in self.recipes:
             if dish.name == recipe.name and dish.meal == recipe.meal:
-                print("LOG: Przepis {name} juz wystepuje na liscie przepisow".format(name=dish.name))
+                logging.info("LOG: Przepis {name} juz wystepuje na liscie przepisow".format(name=dish.name))
                 return
         self.recipes.append(dish)
-        print("LOG: Dodano przepis - {name}".format(name=dish.name))
+        logging.info("LOG: Dodano przepis - {name} ({date})".format(name=dish.name, date=dish.date))
 
     def __str__(self):
         x = ""
@@ -105,7 +108,7 @@ class MealPlan:
             menu_content = file.read()
         self.menu_table_str = re.split(r'[\t\n]', menu_content)
         self.menu_table_obj = []
-        print("LOG: Jadlospis zaimportowany w formie tekstowej - dodano {count} przepisow.".format(
+        logging.info("LOG: Jadlospis zaimportowany w formie tekstowej - dodano {count} przepisow.".format(
             count=len(self.menu_table_str)))
 
     def __str__(self):
@@ -117,10 +120,10 @@ class MealPlan:
                 if recipe.name == entry:
                     self.menu_table_obj.append(recipe)
                     break
-        print("LOG: Jadlospis stworzony w formie obiektowej - dodano {count} przepisow".format(
+        logging.info("LOG: Jadlospis stworzony w formie obiektowej - dodano {count} przepisow".format(
             count=len(self.menu_table_obj)))
         if len(self.menu_table_str) - len(self.menu_table_obj) > 0:
-            print(
+            logging.info(
                 "LOG: {count} przepisow nie moglo zostac zaimportowanych - sprawdz poprawnosc nazw w pliku jadlospisu".format(
                     count=len(self.menu_table_str) - len(self.menu_table_obj)))
 
@@ -138,8 +141,9 @@ class MealPlan:
             else:
                 # check if shopping list contains the ingredient, and if it does - add the weight and go to the next entry
                 for position in shopping_list:
-                    if entry[0]==position[0]:
-                        position[1]+=entry[1]  # TODO: TO GOWNO NIE DZIALA POPRAWNIE przez PASS-BY-REFERENCE! Możesz sprawdzić zwracajac shopping_list_temp
+                    if entry[0] == position[0]:
+                        position[1] += entry[
+                            1]  # TODO: TO GOWNO NIE DZIALA POPRAWNIE przez PASS-BY-REFERENCE! Możesz sprawdzić zwracajac shopping_list_temp
                         entry_added_flag = True
                         break
                 # if the shopping list does not contain the ingredient, add it to the list
@@ -148,7 +152,7 @@ class MealPlan:
         return shopping_list
 
 
-def splitlist_may(meal_list):
+def splitlist(meal_list):
     """
     Returns list of meals.
 
@@ -169,30 +173,44 @@ def splitlist_may(meal_list):
     return splitted_list
 
 
-with open("IPZ 06.05-21.05.txt") as f:
-    jadlospis_1 = f.read()
-# TODO: add the rest of IPZ files
-dish_list = splitlist_may(jadlospis_1)
-# TODO: lish_list can be extended with splitlists of other IPZs
-all_ingredients = []
-book_of_recipes = CookBook()
-for entry in dish_list:
-    # print(entry)
-    book_of_recipes.add_new_recipe(entry)
-    all_ingredients.extend(entry.ingredient_types())  # TODO: this should use CookBook
-print(set(all_ingredients))
+def main():
+    with open("IPZ 06.05-21.05.txt") as f:
+        jadlospis_1 = f.read()
+    with open("IPZ 22.05-05.06.txt") as f:
+        jadlospis_2 = f.read()
+    with open("IPZ 30.09-15.10.txt") as f:
+        jadlospis_3 = f.read()
+    with open("IPZ 16.10-30.10.txt") as f:
+        jadlospis_4 = f.read()
+    dish_list = splitlist(jadlospis_1)
+    dish_list.extend(splitlist(jadlospis_2))
+    dish_list.extend(splitlist(jadlospis_3))
+    dish_list.extend(splitlist(jadlospis_4))
 
-# test wczytywania jadlospisu
-meal_plan = MealPlan("test_meal_plan.txt")
-print(meal_plan)
-print(len(meal_plan.menu_table_str))
-meal_plan.create_menu_with_objects(book_of_recipes)
-print(len(meal_plan.menu_table_obj))
-print(meal_plan.return_shopping_list())  # test listy zakupów
+    all_ingredients = []
+    book_of_recipes = CookBook()
+    for entry in dish_list:
+        # print(entry)
+        book_of_recipes.add_new_recipe(entry)
+        all_ingredients.extend(entry.ingredient_types())  # TODO: this should use CookBook
+    print("Długość listy przepisów: {cookbooklen}".format(cookbooklen=len(book_of_recipes.recipes)))
+    print(set(all_ingredients))
 
-# lista wszystkich sniadan
-# for entry in dish_list:
-#     print(entry.name)
-# print(len(dish_list))
-# print(book_of_recipes)
-# print(len(book_of_recipes.recipes))
+    # test wczytywania jadlospisu
+    meal_plan = MealPlan("test_meal_plan.txt")
+    print(meal_plan)
+    print(len(meal_plan.menu_table_str))
+    meal_plan.create_menu_with_objects(book_of_recipes)
+    print(len(meal_plan.menu_table_obj))
+    print(meal_plan.return_shopping_list())  # test listy zakupów
+
+    # lista wszystkich sniadan
+    # for entry in dish_list:
+    #     print(entry.name)
+    # print(len(dish_list))
+    # print(book_of_recipes)
+    # print(len(book_of_recipes.recipes))
+
+
+if __name__ == "__main__":
+    main()
