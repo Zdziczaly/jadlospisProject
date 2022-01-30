@@ -1,20 +1,23 @@
-from classes import Ingredient, Meal, ShoppingList
-import csv
+import re
+from classes import Dish
 
 
-def createIngredientsList(csv_filename, csv_delimiter):
+def splitlist(meal_list):
     """
-    This function is responsible for creating a list of Ingredients objects from a given csv file.
+    Returns list of meals.
 
-    :param csv_filename: 'Skladniki.csv'
-    :param csv_delimiter: ';'
-    :return: list of Ingredient items
+    :param meal_list: string containing all of the PDF.
+    :return: list of Dish objects
     """
-    ingredients_list = []
-    with open(csv_filename, newline='') as csvfile:
-        ingredientsCsv = csv.reader(csvfile, delimiter=csv_delimiter)
-        for row in ingredientsCsv:
-            if row[0] == "Skladnik":
-                continue
-            ingredients_list.append(Ingredient(row[0], int(row[1]), int(row[2]), int(row[3]), int(row[4])))
-    return (ingredients_list)
+    dishes_list = re.split(r'\d\d:\d\d.', meal_list)
+    dishes_list = dishes_list[1:]  # remove first input in the list, which is not a meal
+    splitted_list = []
+    for dish in dishes_list:
+        meal_nr = dish.partition('\n')[0]
+        date = re.findall(r'(\d\d\.\d\d\.\d\d\d\d)', dish)[0]
+        meal_name = re.findall(r'\d\d\.\d\d\.\d\d\d\d\n([\S\s]+)\nWARTO', dish)
+        # meal_name = meal_name[0].replace('\n', ' ')
+        ingredients_temp = re.findall(r'^(.+) - .+\(([0-9]+) g\)$', dish, re.MULTILINE)
+        instruction = re.findall(r'SPOSÓB PRZYGOTOWANIA:\n([\s\S]+)$', dish)
+        splitted_list.append(Dish(meal_nr, meal_name[0], date, ingredients_temp, instruction[0]))
+    return splitted_list

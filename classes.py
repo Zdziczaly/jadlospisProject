@@ -1,85 +1,161 @@
-import csv
+import re
+import logging
 
 
-class Ingredient:
-    def __init__(self, name, kcal, proteins, carbs, fats):
+class Dish:
+    def __init__(self, meal, dish_name, date, ingredients, instruction):
         """
-        Class containing ingredients used to create a meal.
+        Initializes a new dish
 
-        :param name: name of the ingredient
-        :param kcal: calories per 100g [kcal]
-        :param proteins: proteins per 100g [g]
-        :param carbs: hydrocarbons per 100g [g]
-        :param fats: fats per 100g [g]
+        :param meal: what meal is it for (accepts: Breakfast, Shake, Dinner, Supper)
+        :param dish_name: name of the dish
+        :param date: when was it defined in our diet in DD.MM.YYYY format
+        :param ingredients: list of ingredients in [("name", "quantity"), ...] format
+        :param instruction: string containing preparation instruction
         """
-        self.name = name
-        self.kcal_per_100g = float(kcal)
-        self.proteins_per_100g = float(proteins)
-        self.carbs_per_100g = float(carbs)
-        self.fats_per_100g = float(fats)
+        # Defines what meal is it based on original meal description and a date
+        # if the date is xx.05 or xx.06, then I - Breakfast, II - Shake, III - Dinner, IV - Supper
+        # if the date is xx.09 or xx.10, then I - Breakfast, II - Skip, III - Dinner, IV - Shake, V - Supper
+        breakfast = "Breakfast"
+        shake = "Shake"
+        dinner = "Dinner"
+        supper = "Supper"
+        if re.fullmatch(r'\d\d.0[56].\d{4}', date):
+            if re.fullmatch(r'Posiłek I', meal):
+                self.meal = breakfast
+                multiplier = 1.5
+            elif re.fullmatch(r'Posiłek II', meal):
+                self.meal = shake
+                multiplier = 1.5
+            elif re.fullmatch(r'Posiłek III', meal):
+                self.meal = dinner
+                multiplier = 1.66
+            elif re.fullmatch(r'Posiłek IV', meal):
+                self.meal = supper
+                multiplier = 1.5
+            else:
+                raise Exception("Meal not recognized")
+        elif re.fullmatch(r'\d\d.09.\d{4}', date) or re.fullmatch(r'\d\d.10.\d{4}', date):
+            if re.fullmatch(r'Posiłek I', meal):
+                self.meal = breakfast
+                multiplier = 3
+            elif re.fullmatch(r'Posiłek II', meal):
+                self.meal = "Second Breakfast"
+                multiplier = 3
+            elif re.fullmatch(r'Posiłek III', meal):
+                self.meal = dinner
+                multiplier = 2.5
+            elif re.fullmatch(r'Posiłek IV', meal):
+                self.meal = shake
+                multiplier = 3
+            elif re.fullmatch(r'Posiłek V', meal):
+                self.meal = supper
+                multiplier = 3
+            else:
+                raise Exception("Meal not recognized")
+        else:
+            raise Exception("date format not recognized - unable to create dish")
+
+        self.name = dish_name.replace('\n', ' ')
+        self.date = date
+        self.ingredients_list = []
+        for ingredient in ingredients:
+            self.ingredients_list.append((ingredient[0], round(float(ingredient[1]) * multiplier)))
+        self.preparation_instruction = instruction
 
     def __str__(self):
-        return("{}: \t{}kcal/100g, \tproteins - {}g, \tcarbs - {}g, \tfats - {}g".format(self.name, self.kcal_per_100g,
-               self.proteins_per_100g, self.carbs_per_100g, self.fats_per_100g))
+        return """{meal} - {name}
 
+Składniki:
+{ingred}
 
-class Meal:
-    def __init__(self, all_ingredients_list, meal_csv, csv_delimiter):
+Instrukcja:
+{instruction}""".format(meal=self.meal, name=self.name, ingred=self.ingredients_list,
+                        instruction=self.preparation_instruction)
+
+    def ingredient_types(self):
         """
-        On initialization create list of ingredients in a meal
+        Returns list of unique ingredients without adding their quantities
 
-        :param all_ingredients_list: [Ingredient, Ingredient...]
+        :return: [ingredient1_name, ingredient2_name, ...]
         """
-        self.ingredients = []
-        with open(meal_csv, newline='') as csvfile:
-            i = 1
-            meal_file = csv.reader(csvfile, delimiter=csv_delimiter)
-            for row in meal_file:
-                if i == 1 or i == 3:
-                    i = i+1
-                elif i == 2:
-                    self.meal_id = row[1]
-                    i = i+1
-                else:
-                    for ingredient in all_ingredients_list:
-                        if ingredient.name == row[0]:
-                            self.ingredients.append({'ingredient': ingredient,
-                                                     'quantity': float(row[1])})
-                            break
-
-    def __str__(self):
-        ingredient_string = self.meal_id + "\n"
-        for ingredient in self.ingredients:
-            ingredient_string = ingredient_string + ('{} - {}g\n'.format(ingredient['ingredient'].name,
-                                                                         ingredient['quantity']))
-        return ingredient_string
-
-    def return_kcal(self):
-        """Function returns sum of kcal for given list of ingredients"""
-        kcal = 0
-        for item in self.ingredients:
-            kcal = kcal + item['ingredient'].kcal_per_100g * item['quantity']/100
-        return kcal
+        return [item[0] for item in self.ingredients_list]
 
 
-class ShoppingList:
-    shopping_list = []
+class CookBook:
+    recipes = []
 
-    def add_to_list(self, ingredient: Ingredient, quantity: float):
-        for item in self.shopping_list:
-            if ingredient.name == item['ingredient'].name:
-                item['quantity'] = item['quantity']+quantity
+    def add_new_recipe(self, dish: Dish):
+        for recipe in self.recipes:
+            if dish.name == recipe.name and dish.meal == recipe.meal:
+                logging.info("LOG: Przepis {name} juz wystepuje na liscie przepisow".format(name=dish.name))
                 return
-        self.shopping_list.append({'ingredient': ingredient,
-                                   'quantity': quantity})
+        self.recipes.append(dish)
+        logging.info("LOG: Dodano przepis - {name} ({date})".format(name=dish.name, date=dish.date))
 
-    def add_all_ingredients_to_list(self, meal: Meal):
-        for item in meal.ingredients:
-            self.add_to_list(item['ingredient'], item['quantity'])
+    def ingredient_types(self):
+        ingredient_list = []
+        for recipe in self.recipes:
+            ingredient_list.extend(recipe.ingredient_types())
+        return set(ingredient_list)
 
     def __str__(self):
-        shopping_list_string = 'LISTA ZAKUPOW\n-------------\n'
-        for line in self.shopping_list:
-            shopping_list_string = shopping_list_string + ('{} - {}g\n'.format(line['ingredient'].name,
-                                                                               line['quantity']))
-        return shopping_list_string
+        x = ""
+        for recipe in self.recipes:
+            x += recipe.name + '\n'
+        return x
+
+
+class MealPlan:
+    def __init__(self, path_to_menu):
+        with open(path_to_menu) as file:
+            menu_content = file.read()
+        self.menu_table_str = re.split(r'[\t\n]', menu_content)
+        self.menu_table_obj = []
+        logging.info("LOG: Jadlospis zaimportowany w formie tekstowej - dodano {count} przepisow.".format(
+            count=len(self.menu_table_str)))
+
+    def __str__(self):
+        return str(self.menu_table_str)
+
+    def create_menu_with_objects(self, cookbook: CookBook):
+        # reflect the meal plan list of strings as a list of references to Dish objects
+        for entry in self.menu_table_str:
+            for recipe in cookbook.recipes:
+                if recipe.name == entry:
+                    self.menu_table_obj.append(recipe)
+                    break
+        logging.info("LOG: Jadlospis stworzony w formie obiektowej "
+                     "- dodano {count} przepisow".format(count=len(self.menu_table_obj)))
+
+        # Log an information if there are any meals that cannot be assigned to a Dish object
+        if len(self.menu_table_str) - len(self.menu_table_obj) > 0:
+            logging.info(
+                "LOG: {count} przepisow nie moglo zostac zaimportowanych "
+                "- sprawdz poprawnosc nazw w pliku jadlospisu".format(
+                    count=len(self.menu_table_str) - len(self.menu_table_obj)))
+
+    def return_shopping_list(self):
+        shopping_list_with_repetitions = []  # shopping list where the same ingredient may have multiple instances
+        shopping_list = []  # shopping list where each ingredient shall have one instance and the masses are summed
+        # create list by adding together content of all ingredients lists of all Dish objects
+        for entry in self.menu_table_obj:
+            shopping_list_with_repetitions.extend(entry.ingredients_list)
+        for entry_in_long_shoplist in shopping_list_with_repetitions:
+            entry_added_flag = False
+            if len(shopping_list) == 0:
+                # if the shopping list is empty, copy by value the content of the first tuple
+                # in shopping_list_with_repetitions
+                shopping_list.append([entry_in_long_shoplist[0], entry_in_long_shoplist[1]])
+            else:
+                # check if shopping_list contains the ingredient, and if it does - add the weight
+                # and go to the next entry
+                for position_of_ultimate_shoplist in shopping_list:
+                    if entry_in_long_shoplist[0] == position_of_ultimate_shoplist[0]:
+                        position_of_ultimate_shoplist[1] += entry_in_long_shoplist[1]
+                        entry_added_flag = True
+                        break
+                # if the shopping list does not contain the ingredient, add it to the list
+                if not entry_added_flag:
+                    shopping_list.append([entry_in_long_shoplist[0], entry_in_long_shoplist[1]])
+        return shopping_list

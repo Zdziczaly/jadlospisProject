@@ -1,7 +1,7 @@
 import re
 import logging
 
-logging.getLogger().setLevel(logging.ERROR)
+logging.getLogger().setLevel(logging.INFO)
 
 
 class Dish:
