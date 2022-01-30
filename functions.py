@@ -21,3 +21,10 @@ def splitlist(meal_list):
         instruction = re.findall(r'SPOSÓB PRZYGOTOWANIA:\n([\s\S]+)$', dish)
         splitted_list.append(Dish(meal_nr, meal_name[0], date, ingredients_temp, instruction[0]))
     return splitted_list
+
+
+def show_shopping_list(shopping_list):
+    shopping_list_string = "LISTA ZAKUPÓW:\n"
+    for entry in shopping_list:
+        shopping_list_string += "{ingredient} - {mass}g\n".format(ingredient=entry[0], mass=entry[1])
+    return shopping_list_string

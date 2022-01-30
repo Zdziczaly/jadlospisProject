@@ -1,4 +1,4 @@
-from functions import splitlist
+from functions import splitlist, show_shopping_list
 from classes import CookBook, MealPlan
 
 
@@ -29,7 +29,7 @@ def main():
     print(len(meal_plan.menu_table_str))
     meal_plan.create_menu_with_objects(book_of_recipes)
     print(len(meal_plan.menu_table_obj))
-    print(meal_plan.return_shopping_list())  # test listy zakupów
+    print(show_shopping_list(meal_plan.return_shopping_list()))  # test listy zakupów
 
     # lista wszystkich sniadan
     # for entry in dish_list:
