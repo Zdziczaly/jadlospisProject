@@ -1,8 +1,8 @@
 import re
 import logging
 
+logging.getLogger().setLevel(logging.ERROR)
 
-logging.getLogger().setLevel(logging.INFO)
 
 class Dish:
     def __init__(self, meal, dish_name, date, ingredients, instruction):
@@ -62,7 +62,7 @@ class Dish:
         self.date = date
         self.ingredients_list = []
         for ingredient in ingredients:
-            self.ingredients_list.append([ingredient[0], round(float(ingredient[1]) * multiplier)])
+            self.ingredients_list.append((ingredient[0], round(float(ingredient[1]) * multiplier)))
         self.preparation_instruction = instruction
 
     def __str__(self):
@@ -95,6 +95,12 @@ class CookBook:
         self.recipes.append(dish)
         logging.info("LOG: Dodano przepis - {name} ({date})".format(name=dish.name, date=dish.date))
 
+    def ingredient_types(self):
+        ingredient_list = []
+        for recipe in self.recipes:
+            ingredient_list.extend(recipe.ingredient_types())
+        return set(ingredient_list)
+
     def __str__(self):
         x = ""
         for recipe in self.recipes:
@@ -115,40 +121,45 @@ class MealPlan:
         return str(self.menu_table_str)
 
     def create_menu_with_objects(self, cookbook: CookBook):
+        # reflect the meal plan list of strings as a list of references to Dish objects
         for entry in self.menu_table_str:
             for recipe in cookbook.recipes:
                 if recipe.name == entry:
                     self.menu_table_obj.append(recipe)
                     break
-        logging.info("LOG: Jadlospis stworzony w formie obiektowej - dodano {count} przepisow".format(
-            count=len(self.menu_table_obj)))
+        logging.info("LOG: Jadlospis stworzony w formie obiektowej "
+                     "- dodano {count} przepisow".format(count=len(self.menu_table_obj)))
+
+        # Log an information if there are any meals that cannot be assigned to a Dish object
         if len(self.menu_table_str) - len(self.menu_table_obj) > 0:
             logging.info(
-                "LOG: {count} przepisow nie moglo zostac zaimportowanych - sprawdz poprawnosc nazw w pliku jadlospisu".format(
+                "LOG: {count} przepisow nie moglo zostac zaimportowanych "
+                "- sprawdz poprawnosc nazw w pliku jadlospisu".format(
                     count=len(self.menu_table_str) - len(self.menu_table_obj)))
 
     def return_shopping_list(self):
-        shopping_list_temp = []
-        shopping_list = []
+        shopping_list_with_repetitions = []  # shopping list where the same ingredient may have multiple instances
+        shopping_list = []  # shopping list where each ingredient shall have one instance and the masses are summed
         # create list by adding together content of all ingredients lists of all Dish objects
         for entry in self.menu_table_obj:
-            shopping_list_temp.extend(entry.ingredients_list)
-        # TODO: make it so that the list contains only unique entries, and identical ingredients are summed
-        for entry in shopping_list_temp:
+            shopping_list_with_repetitions.extend(entry.ingredients_list)
+        for entry_in_long_shoplist in shopping_list_with_repetitions:
             entry_added_flag = False
             if len(shopping_list) == 0:
-                shopping_list.append(entry)
+                # if the shopping list is empty, copy by value the content of the first tuple
+                # in shopping_list_with_repetitions
+                shopping_list.append([entry_in_long_shoplist[0], entry_in_long_shoplist[1]])
             else:
-                # check if shopping list contains the ingredient, and if it does - add the weight and go to the next entry
-                for position in shopping_list:
-                    if entry[0] == position[0]:
-                        position[1] += entry[
-                            1]  # TODO: TO GOWNO NIE DZIALA POPRAWNIE przez PASS-BY-REFERENCE! Możesz sprawdzić zwracajac shopping_list_temp
+                # check if shopping_list contains the ingredient, and if it does - add the weight
+                # and go to the next entry
+                for position_of_ultimate_shoplist in shopping_list:
+                    if entry_in_long_shoplist[0] == position_of_ultimate_shoplist[0]:
+                        position_of_ultimate_shoplist[1] += entry_in_long_shoplist[1]
                         entry_added_flag = True
                         break
                 # if the shopping list does not contain the ingredient, add it to the list
                 if not entry_added_flag:
-                    shopping_list.append(entry)
+                    shopping_list.append([entry_in_long_shoplist[0], entry_in_long_shoplist[1]])
         return shopping_list
 
 
@@ -187,14 +198,12 @@ def main():
     dish_list.extend(splitlist(jadlospis_3))
     dish_list.extend(splitlist(jadlospis_4))
 
-    all_ingredients = []
     book_of_recipes = CookBook()
     for entry in dish_list:
-        # print(entry)
         book_of_recipes.add_new_recipe(entry)
-        all_ingredients.extend(entry.ingredient_types())  # TODO: this should use CookBook
     print("Długość listy przepisów: {cookbooklen}".format(cookbooklen=len(book_of_recipes.recipes)))
-    print(set(all_ingredients))
+    print("liczba skladnikow: {}".format(len(book_of_recipes.ingredient_types())))
+    print(book_of_recipes.ingredient_types())
 
     # test wczytywania jadlospisu
     meal_plan = MealPlan("test_meal_plan.txt")
