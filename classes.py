@@ -64,14 +64,14 @@ class Dish:
         self.preparation_instruction = instruction
 
     def __str__(self):
-        return """{meal} - {name}
+        return """{meal} - {name} ({date})
 
 Składniki:
 {ingred}
 
 Instrukcja:
-{instruction}""".format(meal=self.meal, name=self.name, ingred=self.ingredients_list,
-                        instruction=self.preparation_instruction)
+{instruction}""".format(meal=self.meal, name=self.name, ingred=self.ingredients_str(),
+                        instruction=self.preparation_instruction, date=self.date)
 
     def ingredient_types(self):
         """
@@ -80,6 +80,12 @@ Instrukcja:
         :return: [ingredient1_name, ingredient2_name, ...]
         """
         return [item[0] for item in self.ingredients_list]
+
+    def ingredients_str(self):
+        text = ""
+        for item in self.ingredients_list:
+            text += "{} - {}g ({}g)\n".format(item[0], item[1], item[1] * 2)
+        return text
 
 
 class CookBook:
@@ -130,10 +136,8 @@ class MealPlan:
 
         # Log an information if there are any meals that cannot be assigned to a Dish object
         if len(self.menu_table_str) - len(self.menu_table_obj) > 0:
-            logging.info(
-                "LOG: {count} przepisow nie moglo zostac zaimportowanych "
-                "- sprawdz poprawnosc nazw w pliku jadlospisu".format(
-                    count=len(self.menu_table_str) - len(self.menu_table_obj)))
+            logging.error("LOG: {count} przepisow nie moglo zostac zaimportowanych - sprawdz poprawnosc nazw w pliku"
+                          " jadlospisu".format(count=len(self.menu_table_str) - len(self.menu_table_obj)))
 
     def return_shopping_list(self):
         shopping_list_with_repetitions = []  # shopping list where the same ingredient may have multiple instances

@@ -28,3 +28,24 @@ def show_shopping_list(shopping_list):
     for entry in shopping_list:
         shopping_list_string += "{ingredient} - {mass}g\n".format(ingredient=entry[0], mass=entry[1])
     return shopping_list_string
+
+
+def save_dish_to_file(dish: Dish):
+    with open("Karty dań/{meal}/{name}.txt".format(meal=dish.meal, name=dish.name), 'w', encoding='utf8') as f:
+        f.write(str(dish))
+
+
+def prepare_dish_list():
+    with open("IPZ 06.05-21.05.txt") as f:
+        jadlospis_1 = f.read()
+    with open("IPZ 22.05-05.06.txt") as f:
+        jadlospis_2 = f.read()
+    with open("IPZ 30.09-15.10.txt") as f:
+        jadlospis_3 = f.read()
+    with open("IPZ 16.10-30.10.txt") as f:
+        jadlospis_4 = f.read()
+    dish_list = splitlist(jadlospis_1)
+    dish_list.extend(splitlist(jadlospis_2))
+    dish_list.extend(splitlist(jadlospis_3))
+    dish_list.extend(splitlist(jadlospis_4))
+    return dish_list
